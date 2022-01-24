@@ -1,0 +1,273 @@
+Name1 - Dhairya Gupta
+Entry No.1 - 2019CS50428
+
+Name2 = Prakhar Aggarwal
+Entry No.2 - 2019CS50441
+
+Design Overview and Specifications:
+
+1. The design of the C++ MIPS interpreter has been done in an easy to read and modular fashion. Several helper functions have been used. The main_memory consists of an array of 2^18 = 262,144 int variables, which is equivalent to 2^20 bytes of memory. Roughly 1/8th of the memory i.e 2^17 bytes or 32768 * 4 bytes have been assigned to the Text Segment for storing instructions. Although, the actual instructions are stored in a vector, but the segmentation of memory has been done similar to a MIPS processor.
+
+2. The data segment address starts from 2^17 = 131072 for the int array, and goes till 2^20 = 1048576. Any attempt to store or load words to/from an address below 2^17 or above 2^20 throws an error.
+Similarly, attempt to branch/jump to an instruction with an address >= 2^17, or <0 throws an error.
+
+3. The input format for the 32 registers is of the form $0, $1, .. $31. The $0 register is fixed to zero and cannot be altered. For the j, beq and bne instructions, address is expected in the form of a value. The design does not include labelled branches, and any address value can be branched to. For the lw and sw instructions, the address can given in form [offset_val(reg_val)].
+
+4. Comments can also be added.
+
+5. Example format of instructions:
+addi $3, $4, 1
+sub $3, $1, $2		#similar for add, mul, slt
+lw $3, 56($10)		#similar for sw
+lw $3, ($10)		#also accepted(for sw,lw)
+beq $4, $5, 5		#similar for bne, last attribute denotes instruction address
+j 12			#jumps to instruction address 8
+
+6. A Program Counter(PC) is maintained which stores the instruction of the next address. All addresses are byte addressable with no support for unaligned address. Since, we are only using a simulation, all words are stored as integer types. All results are printed on console step-by-step. Press enter/return key to view step-by-step changes. Final results also include clock cycles and no. of executions per instruction. Note: all addresses are stored as byte address at multiples of 4.
+
+7. A makefile is provided. Run "make" to generate binary in terminal. For execution, run "./program <filename>". To delete executable binary run "make clean".
+
+
+TestCases:
+
+1.(empty file)
+Abort: Empty Input file
+
+2.(trivial operations check)
+addi $1, $1, 1
+addi $2, $2, 1
+bne $2, $1, 4
+
+PC	C
+
+R0	0
+R1	1
+R2	1
+R3	0
+R4	0
+R5	0
+R6	0
+R7	0
+R8	0
+R9	0
+R10	0
+R11	0
+R12	0
+R13	0
+R14	0
+R15	0
+R16	0
+R17	0
+R18	0
+R19	0
+R20	0
+R21	0
+R22	0
+R23	0
+R24	0
+R25	0
+R26	0
+R27	0
+R28	0
+R29	0
+R30	0
+R31	0
+
+
+
+Instruction			Count
+Instruction address 0		1
+Instruction address 4		1
+Instruction address 8		1
+
+Clock Cycles: 3
+
+3. (Complex file)
+
+addi $13, $10, 3271
+sub $25, $17, $20
+mul $13, $14, $25
+sw $13, 131084($0)
+mul $11, $13, $11
+slt $22, $2, $4
+sw $24, 131088($0)
+addi $26, $31, 3575
+sub $2, $9, $28
+slt $21, $26, $7
+slt $14, $15, $2
+addi $6, $24, 3404
+sw $5, 131080($0)
+addi $24, $22, 1320
+mul $6, $13, $2
+addi $9, $10, 274
+slt $25, $27, $30
+addi $12, $26, 801
+lw $31, 131088($0)
+mul $13, $14, $13
+lw $11, 131084($0)
+slt $12, $10, $29
+slt $29, $12, $1
+slt $2, $13, $23
+sw $18, 131072($0)
+mul $22, $16, $17
+sw $29, 131084($0)
+mul $14, $12, $7
+
+PC	70
+
+R0	0
+R1	0
+R2	0
+R3	0
+R4	0
+R5	0
+R6	0
+R7	0
+R8	0
+R9	112
+R10	0
+R11	0
+R12	0
+R13	0
+R14	0
+R15	0
+R16	0
+R17	0
+R18	0
+R19	0
+R20	0
+R21	0
+R22	0
+R23	0
+R24	528
+R25	0
+R26	DF7
+R27	0
+R28	0
+R29	0
+R30	0
+R31	0
+
+
+
+Instruction			Count
+Instruction address 0		1
+Instruction address 4		1
+Instruction address 8		1
+Instruction address 12		1
+Instruction address 16		1
+Instruction address 20		1
+Instruction address 24		1
+Instruction address 28		1
+Instruction address 32		1
+Instruction address 36		1
+Instruction address 40		1
+Instruction address 44		1
+Instruction address 48		1
+Instruction address 52		1
+Instruction address 56		1
+Instruction address 60		1
+Instruction address 64		1
+Instruction address 68		1
+Instruction address 72		1
+Instruction address 76		1
+Instruction address 80		1
+Instruction address 84		1
+Instruction address 88		1
+Instruction address 92		1
+Instruction address 96		1
+Instruction address 100		1
+Instruction address 104		1
+Instruction address 108		1
+
+Clock Cycles: 28
+
+4. (Complex file with comments)
+addi $4, $4, 131096
+addi $2, $2, 131072
+#add $5, $2, $5
+
+  			 #klnlenlf
+
+
+#lkfvklj 28
+	 	sub $6, $6, $2
+       addi $7, $7, 1
+	mul $8, $7, $7
+ sw $2, ($2)
+lw $3, ($2)#lknjl
+addi $2, $2, 4#ljnkjn
+bne $3, $4, 8 #jknjvkn
+
+
+
+PC	24
+
+R0	0
+R1	0
+R2	2001C
+R3	20018
+R4	20018
+R5	0
+R6	FFF1FFAC
+R7	7
+R8	31
+R9	0
+R10	0
+R11	0
+R12	0
+R13	0
+R14	0
+R15	0
+R16	0
+R17	0
+R18	0
+R19	0
+R20	0
+R21	0
+R22	0
+R23	0
+R24	0
+R25	0
+R26	0
+R27	0
+R28	0
+R29	0
+R30	0
+R31	0
+
+
+
+Instruction			Count
+Instruction address 0		1
+Instruction address 4		1
+Instruction address 8		7
+Instruction address 12		7
+Instruction address 16		7
+Instruction address 20		7
+Instruction address 24		7
+Instruction address 28		7
+Instruction address 32		7
+
+5a. (syntax error)
+addi $1, $1, 1
+addi $2, $2, 1
+bnq $2, $1, 4
+
+Abort: Syntax error at line 3
+
+5b.
+addi $1, $1, 1
+addi $2, $2, 1
+bne $2, $1, $4
+
+Abort: Syntax error at line 3
+
+6. (Assigning to $0)
+addi $0, $2, 1
+Abort: Cannot assign to zero register
+
+7. (Overflow)
+addi $1, $0, 166945
+mul $1, $1, $1
+Overflow: Arithmetic Overflow Error

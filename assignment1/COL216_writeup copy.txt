@@ -1,0 +1,170 @@
+Name - Dhairya Gupta
+Entry No. - 2019CS50428
+
+A) Design Overview:
+
+1. The design of the MIPS program for calculating area has been done assuming that the area below the X-axis is to be considered negative. This is practically useful since summing up the areas is the approximation for integrating a function in which area below the horizontal axis is negative.
+
+2. Input is taken one integer at a time, each on a newline, through keyboard input. The first number is the number of points (= n) which is read through the "read_integer" syscall(code = 5). If a negative number is 0 is input, an error is raised. On the next 2*n lines, X and Y coordinates of the points are read through user input. These are also read through "read_integer" syscall
+
+3. Input error is also raised if the X coordinates are not given in a strictly increasing order, since that is required in our specifications.
+
+4. Overflow error is raised if at any point during the calculation, the sum or the product(To be added to the sum variable) exceeds 32 bits. For checking overflow during product, we check the HI and LO registers and if the HI register is non-zero, then the product has overflown. For sum, we check sign of the 2 terms added and the resultant sum. If the 2 terms added have the same sign while the resultant does not, the sum has overflown.
+
+5. The code is divided into multiple blocks to facilitate constructs such as looping and making the code easy to understand
+
+
+B) Design details:
+
+1. Register $t1 stores the counter; $t2 stores the sum; $t3 stores no. of points, $t4 and $t5 store X and Y coordinates of 1st point in consideration; $t6 and $t7 store X and Y coordinates of 2nd point in consideration. Here by 1st and 2nd point, we mean two successive points such that a trapezoid is bounded between them. We are interested in the area of this trapezoid. 
+
+2. The area of the trapezoid bounded by two points (x1, y1) and (x2, y2) is 0.5 * (sum of parallel sides) * base i.e. 0.5 * (y1 + y2) * (x2 - x1). Even if y1, y2 are positive/negative, the formula for area still holds assuming area below the X-axis is negative. Since coordinates are integer and the only term incorporating a floating point value is product with 0.5, we calculate the integer sum without multiplying with 0.5. The final sum is copied to a floating point register where it is converted to float and multiplied by 0.5.
+
+3. We store the 1st point in $t4, $t5 and the 2nd point in $t6, $t7. after updating the sum and incrementing the counter, the previous 2nd point is now stored in $t4, $t5 and the new input point is stored in $t6, $t7, thereby making them the new "1st and 2nd points". This is done for (n-1) iterations and the final sum is multiplied by 0.5 and printed on console.
+
+C) Test Cases:
+
+Input messages are prompted as follows:
+
+Enter the no. of points: n = 
+Enter X coordinate: x = 
+Enter Y coordinate: y = 
+..
+..
+
+
+Case0. (Trivial)
+
+Enter the no. of points: n = 4
+Enter X coordinate: x = 1
+Enter Y coordinate: y = 2
+Enter X coordinate: x = 3
+Enter Y coordinate: y = 4
+Enter X coordinate: x = 5
+Enter Y coordinate: y = 6
+Enter X coordinate: x = 7
+Enter Y coordinate: y = 8
+Area enclosed by points is: 30.00000000
+
+Area should be 0.5*[(2+4)*(3-1) + (4+6)*(5-3) + (6+8)*(7-5)] = 30
+
+
+Case1a. (Entering negative input)
+Enter the no. of points: n = -3
+
+InputError: Please enter a positive integer
+
+
+Case1b.
+Enter the no. of points: n = 0
+
+InputError: Please enter a positive integer
+
+
+Case2. (Checking if floating point values are printed correctly)
+
+Enter the no. of points: n = 6
+Enter X coordinate: x = 1
+Enter Y coordinate: y = 3
+Enter X coordinate: x = 2
+Enter Y coordinate: y = 4
+Enter X coordinate: x = 3
+Enter Y coordinate: y = 5
+Enter X coordinate: x = 4
+Enter Y coordinate: y = 6
+Enter X coordinate: x = 5
+Enter Y coordinate: y = 7
+Enter X coordinate: x = 6
+Enter Y coordinate: y = 8
+Area enclosed by points is: 27.50000000
+
+Area should be 0.5*[(3+4)*(2-1) + (4+5)*(3-2) + (5+6)*(4-3) + (6+7)*(5-4) + (7+8)*(6-5)] = 27.5
+
+
+Case3. (Handling negative areas)
+
+Enter the no. of points: n = 5
+Enter X coordinate: x = -3
+Enter Y coordinate: y = -1
+Enter X coordinate: x = -1
+Enter Y coordinate: y = 1
+Enter X coordinate: x = 2
+Enter Y coordinate: y = -6
+Enter X coordinate: x = 3
+Enter Y coordinate: y = -8
+Enter X coordinate: x = 5
+Enter Y coordinate: y = -10
+Area enclosed by points is: -32.50000000
+
+Area given is correct(taking negative area below the X-axis)
+
+
+Case4a. (If X values are input in an order which is not strictly increasing)
+
+Enter the no. of points: n = 4
+Enter X coordinate: x = 12
+Enter Y coordinate: y = 4
+Enter X coordinate: x = 17
+Enter Y coordinate: y = 10
+Enter X coordinate: x = 15
+Enter Y coordinate: y = 11
+
+InputError: X coordinates must be given in strictly increasing order
+
+As visible, the code did not ask for the 4th x and y coordinate as condition was violated at the 3rd point's input.
+	
+Case4b.
+Enter the no. of points: n = 10
+Enter X coordinate: x = 1
+Enter Y coordinate: y = -2
+Enter X coordinate: x = 3
+Enter Y coordinate: y = 4
+Enter X coordinate: x = 5
+Enter Y coordinate: y = -6
+Enter X coordinate: x = 6
+Enter Y coordinate: y = -7
+Enter X coordinate: x = 7
+Enter Y coordinate: y = 8
+Enter X coordinate: x = 8
+Enter Y coordinate: y = -9
+Enter X coordinate: x = 9
+Enter Y coordinate: y = -10
+Enter X coordinate: x = 10
+Enter Y coordinate: y = -2
+Enter X coordinate: x = 10
+Enter Y coordinate: y = 9
+
+InputError: X coordinates must be given in strictly increasing order
+
+Again, error is raised as soon as undesirable X coordinate is entered
+Strictly increasing input is required. 2 values of X cannot be same.
+
+
+Case5a. (Arbitrarily large inputs to check overflow)
+Enter the no. of points: n = 2
+Enter X coordinate: x = 65536
+Enter Y coordinate: y = 131072
+Enter X coordinate: x = 196608
+Enter Y coordinate: y = 262144
+
+OverflowError: Result exceeded 32 bits
+
+Here multiplication is the only operation done as areas are not being added
+
+Case5b. 
+Enter the no. of points: n = 10
+Enter X coordinate: x = 32768
+Enter Y coordinate: y = 0
+Enter X coordinate: x = 65536
+Enter Y coordinate: y = 65536
+Enter X coordinate: x = 98304
+Enter Y coordinate: y = 131072
+
+OverflowError: Result exceeded 32 bits
+
+
+
+
+
+
+

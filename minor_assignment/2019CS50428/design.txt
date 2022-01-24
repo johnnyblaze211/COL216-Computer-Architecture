@@ -1,0 +1,566 @@
+Minor Assignment
+
+Name: Dhairya Gupta
+Entry No. - 2019CS50428
+
+** The code is an extension to my own assignment 3 submission. **
+
+In this assignment, we have implemented a basic MIPS simulator with 4 instructions add, addi, lw and sw using DRAM for memory write and access. 
+
+The zip folder contains a Makefile, part1.cpp, part2.cpp along with this file. To run the code, simply type "make" on the terminal to create executable binaries for part1 and part2. To run the executable, the user must provide the filename along with integer values ROW_ACCESS_DELAY and COL_ACCESS_DELAY. On the terminal window type "./part1 <filename> <ROW_ACCESS_DELAY> <COL_ACCESS_DELAY>" for part1 and similarly for part2.
+
+MIPS convention:
+The design follows standard 32 bit, 32 register MIPS architecture. MIPS simulator accepts register arguments as $0, $1, ... $31. The $0 register is the constant zero register which cannot be altered. Also add, addi will throw an overflow error if the result exceeds 32 bits. Comments can also be incorporated. The accepted instruction format is as given in the examples:- 
+
+ADD:
+add $4, $2, $3
+
+ADDI:
+add $5, $0, 74
+
+LW:
+lw $4, 8($3)
+
+SW: 
+sw $4, 8($3)
+
+The memory is byte addressable. So address value(register value + offset) must be a multiple of 4 or an error is thrown.
+
+Part1 implementation:
+In the part1 implementation. All the instructions are executed sequentially. At every cycle, the activity is mentioned. The instructions for add and addi are fairly straightforward. Both these steps take a single clock_cycle and the target registers in the register_files are updated. For lw and sw instructions(both have similar code and logic), there are three possible cases :-
+
+Case 1:	Address is already in the row buffer
+	The address required for storing/loading value is part of the row presently in the row buffer. In this case, we only require COL_ACCESS_DELAY time to access the required memory address as the row is already in the buffer.
+
+Case 2: No row has been activated yet.
+	In this case, there is no writeback time delay. However, the required address's row must be copied to the row buffer. In this case, ROW_ACCESS_DELAY time is required to activate the row and COL_ACCESS_DELAY is required to get the specific address value from the row buffer.
+
+Case 3: The address row is not present in the activated row buffer
+	In this case, ROW_ACCESS_DELAY time is required for writeback. Further, ROW_ACCESS_DELAY time is required to activate the new row. Finally, COL_ACCESS_DELAY time is required to access the specific word.
+
+In our implementation, we are not writing back to memory after final instruction assuming that more instructions to the DRAM can follow in which case, it would be inefficient to writeback and then activate the row again.
+
+Part2 implementation:
+In the part2 implementation, the output is concise and more readable than output1. Here, we are more concerned with the non-blocking implementation, i.e., by allowing for execution of instructions before completion of memory access as long as it is safe to do so. In our design, we have the following:
+
+1. If DRAM is idle, lw/sw can execute and the request can be sent to DRAM.
+2. If DRAM is not idle, lw/sw instructions will not be processed until the DRAM is idle.
+3. If DRAM is not idle, add or addi instructions can be processed sequentially until the target register/ address register does not clash with either the source/target registers for add, addi instructions. If this clash does happen, the program will wait until DRAM is idle to continue processing the instructions sequentially.
+
+The other implementations are the same as part1.
+
+Strengths and Weaknesses of approach:
+Extensive error handling is done for incorrect input, overflow, file_error, etc. There is also scope for adding more functionality in the code. The output for part1 is highly verbose describing each cycle in detail with instructions and remarks. For part2, a slightly less verbose implementation has been done. However, due to the extensive nature of C++ code, debugging is more difficult and the code could have been more concise and user friendly. 
+
+TestCases:
+
+Case 1.
+{ROW_ACCESS_DELAY = 10, COL_ACCESS_DELAY = 2}
+	
+	lw $8, 0($15)
+	addi $9, $9, 1
+	add $10, $10, $11
+	addi $15, $0, 5
+
+(part1)
+Cycle number: 1
+Instruction: 	lw $8, 0($15)
+Remarks: DRAM request to address 0(row 0), currently no row is active.
+Cycle number: 2-11
+Instruction: DRAM Activate row 0
+Remarks: Load row 0 in row buffer
+Cycle number: 12-13
+Instruction: DRAM Column Request
+Register: R8=0
+Remarks: Column access and write value in R8
+Cycle number: 14
+Instruction: 	addi $9, $9, 1
+Register: R9=1
+Cycle number: 15
+Instruction: 	add $10, $10, $11
+Register: R10=0
+Cycle number: 16
+Instruction: 	addi $15, $0, 5
+Register: R15=5
+
+
+Row Buffer Activation Count = 1
+
+Clock Cycles: 16
+
+Register file:
+
+PC	10
+0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+No memory values updated
+
+(part2)
+Cycle 1: 	lw $8, 0($15)
+DRAM request issued
+Cycle 2:	addi $9, $9, 1
+Loading Register R8=0 from DRAM and loaded register R9=1 from register file
+Cycle 3: 	add $10, $10, $11
+Loading Register R8=0 from DRAM and loaded register R10=0 from register file
+Cycle 4-13:
+Loaded Register R8=0 from DRAM
+Cycle 14: 	addi $15, $0, 5
+Loaded Register R15=5
+
+
+Row Buffer Activation Count = 1
+
+Clock Cycles: 14
+
+Register file:
+
+PC	10
+0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+No memory values updated
+
+[As expected, the non-blocking implementation takes less time]
+
+Case 2. {ROW_ACCESS_DELAY = 10, COL_ACCESS_DELAY = 2}
+	addi $16, $0, 1000
+	addi $17, $0, 1024
+	addi $8, $0, 1
+	addi $9, $0, 2
+	sw $8, 0($16)
+	sw $9, 0($17)
+	
+	lw $10, 0($16)
+	lw $11, 0($17)
+	
+	add $11, $11, $10
+	addi $18, $0, 1028
+	
+	sw $11, 0($18)
+
+(part 1)
+Cycle number: 1
+Instruction: 	addi $16, $0, 1000
+Register: R16=1000
+Cycle number: 2
+Instruction: 	addi $17, $0, 1024
+Register: R17=1024
+Cycle number: 3
+Instruction: 	addi $8, $0, 1
+Register: R8=1
+Cycle number: 4
+Instruction: 	addi $9, $0, 2
+Register: R9=2
+Cycle number: 5
+Instruction: 	sw $8, 0($16)
+Remarks: DRAM request to address 1000(row 0), currently no row is active.
+Cycle number: 6-15
+Instruction: DRAM Activate row 0
+Remarks: Load row 0 in row buffer
+Cycle number: 16-17
+Instruction: DRAM Column Request
+Memory: Address 1000=1
+Remarks: Column access and update memory
+Cycle number: 18
+Instruction: 	sw $9, 0($17)
+Remarks: DRAM request to address 1024(row 1)
+Cycle number: 19-28
+Instruction: DRAM writeback row 0
+Cycle number: 29-38
+Instruction: DRAM Activate row 1
+Remarks: Load row 1 in row buffer
+Cycle number: 39-40
+Instruction: DRAM Column Request
+Memory: Address 1024=2
+Remarks: Column access and write value in R9
+Cycle number: 41
+Instruction: 	lw $10, 0($16)
+Remarks: DRAM request to address 1000(row 0)
+Cycle number: 42-51
+Instruction: DRAM writeback row 1
+Cycle number: 52-61
+Instruction: DRAM Activate row 0
+Remarks: Load row 0 in row buffer
+Cycle number: 62-63
+Instruction: DRAM Column Request
+Register: R10=1
+Remarks: Column access and write value in R10
+Cycle number: 64
+Instruction: 	lw $11, 0($17)
+Remarks: DRAM request to address 1024(row 1)
+Cycle number: 65-74
+Instruction: DRAM writeback row 0
+Cycle number: 75-84
+Instruction: DRAM Activate row 1
+Remarks: Load row 1 in row buffer
+Cycle number: 85-86
+Instruction: DRAM Column Request
+Register: R11=2
+Remarks: Column access and write value in R11
+Cycle number: 87
+Instruction: 	add $11, $11, $10
+Register: R11=3
+Cycle number: 88
+Instruction: 	addi $18, $0, 1028
+Register: R18=1028
+Cycle number: 89
+Instruction: 	sw $11, 0($18)
+Remarks: DRAM request to address 1028(row 1), currently active row is also 1
+Cycle number: 90-91
+Instruction: DRAM Column Access
+Memory: Address 1028=3
+Remarks: As the row is already in row buffer, activate and writeback time is avoided
+
+
+Row Buffer Activation Count = 4
+
+Clock Cycles: 91
+
+Register file:
+
+PC	2C
+0 0 0 0 0 0 0 0 1 2 1 3 0 0 0 0 3E8 400 404 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 1000-1003 = 1
+Address 1024-1027 = 2
+Address 1028-1031 = 3
+
+(part 2)
+Cycle 1:	addi $16, $0, 1000
+Register R16=1000
+Cycle 2:	addi $17, $0, 1024
+Register R17=1024
+Cycle 3:	addi $8, $0, 1
+Register R8=1
+Cycle 4:	addi $9, $0, 2
+Register R9=2
+Cycle 5:
+DRAM request issued
+Cycle 6-17:
+Updated Address 1000=1from DRAM
+Cycle 18:
+DRAM request issued
+Cycle 19-40:
+Updated Address 1024=2
+Cycle 41: 	lw $10, 0($16)
+DRAM request issued
+Cycle 42-63:
+Loaded Register R10=1 from DRAM
+Cycle 64: 	lw $11, 0($17)
+DRAM request issued
+Cycle 65-86:
+Loaded Register R11=2 from DRAM
+Cycle 87: 	add $11, $11, $10
+Register R11=3
+Cycle 88:	addi $18, $0, 1028
+Register R18=1028
+Cycle 89:
+DRAM request issued
+Cycle 90-91:
+Updated Address 1028=3
+
+
+Row Buffer Activation Count = 4
+
+Clock Cycles: 91
+
+Register file:
+
+PC	2C
+0 0 0 0 0 0 0 0 1 2 1 3 0 0 0 0 3E8 400 404 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 1000-1003 = 1
+Address 1024-1027 = 2
+Address 1028-1031 = 3
+
+[In this case, no non-blocking instructions were present. Hence, cycle count is the same]
+
+Case 3. (Case when same row buffer is used for next lw/sw instruction)
+{ROW_ACCESS_DELAY = 10, COL_ACCESS_DELAY = 2}
+	addi $2, $0, 3
+	addi $3, $0, 4
+	sw $2, 1($2)
+	add $5, $6, $3
+	addi $4, $5, 95
+	addi $4, $2, 10
+	addi $2, $4, 10
+	addi $10, $0, 20
+	addi $15, $0, 420
+	sw $15, 0($10)
+	lw $20, 0($10)
+	add $15, $15, $15
+	add $20, $20, $20
+
+(part 1)
+
+Cycle number: 1
+Instruction: 	addi $2, $0, 3
+Register: R2=3
+Cycle number: 2
+Instruction: 	addi $3, $0, 4
+Register: R3=4
+Cycle number: 3
+Instruction: 	sw $2, 1($2)
+Remarks: DRAM request to address 4(row 0), currently no row is active.
+Cycle number: 4-13
+Instruction: DRAM Activate row 0
+Remarks: Load row 0 in row buffer
+Cycle number: 14-15
+Instruction: DRAM Column Request
+Memory: Address 4=3
+Remarks: Column access and update memory
+Cycle number: 16
+Instruction: 	add $5, $6, $3
+Register: R5=4
+Cycle number: 17
+Instruction: 	addi $4, $5, 95
+Register: R4=99
+Cycle number: 18
+Instruction: 	addi $4, $2, 10
+Register: R4=13
+Cycle number: 19
+Instruction: 	addi $2, $4, 10
+Register: R2=23
+Cycle number: 20
+Instruction: 	addi $10, $0, 20
+Register: R10=20
+Cycle number: 21
+Instruction: 	addi $15, $0, 420
+Register: R15=420
+Cycle number: 22
+Instruction: 	sw $15, 0($10)
+Remarks: DRAM request to address 20(row 0), currently active row is also 0
+Cycle number: 23-24
+Instruction: DRAM Column Access
+Memory: Address 20=420
+Remarks: As the row is already in row buffer, activate and writeback time is avoided
+Cycle number: 25
+Instruction: 	lw $20, 0($10)
+Remarks: DRAM request to address 20(row 0), currently active row is also 0
+Cycle number: 26-27
+Instruction: DRAM Column Request
+Register: R20=420
+Remarks: As the row is already in row buffer, activate and writeback time is avoided
+Cycle number: 28
+Instruction: 	add $15, $15, $15
+Register: R15=840
+Cycle number: 29
+Instruction: 	add $20, $20, $20
+Register: R20=840
+
+
+Row Buffer Activation Count = 1
+
+Clock Cycles: 29
+
+Register file:
+
+PC	34
+0 0 17 4 D 4 0 0 0 0 14 0 0 0 0 348 0 0 0 0 348 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 4-7 = 3
+Address 20-23 = 420
+
+(part 2)
+
+Cycle 1:	addi $2, $0, 3
+Register R2=3
+Cycle 2:	addi $3, $0, 4
+Register R3=4
+Cycle 3:
+DRAM request issued
+Cycle 4: 	add $5, $6, $3
+Updating Address 4=3 from DRAM and loaded register R5=4 from register file
+Cycle 5:	addi $4, $5, 95
+Updating Address 4=3 from DRAM and loaded register R4=99 from register file
+Cycle 6-15:
+Updated Address 4=3
+Cycle 16: 	addi $4, $2, 10
+Loaded Register R4=13
+Cycle 17:	addi $2, $4, 10
+Register R2=23
+Cycle 18:	addi $10, $0, 20
+Register R10=20
+Cycle 19:	addi $15, $0, 420
+Register R15=420
+Cycle 20:
+DRAM request issued
+Cycle 21-22:
+Updated Address 20=420
+Cycle 23: 	lw $20, 0($10)
+DRAM request issued
+Cycle 24: 	add $15, $15, $15
+Loading Register R20=420 from DRAM and loaded register R15=840 from register file
+Cycle 25-25:
+Loaded Register R20=420 from DRAM
+Cycle 26: 	add $20, $20, $20
+Register R20=840
+
+
+Row Buffer Activation Count = 1
+
+Clock Cycles: 26
+
+Register file:
+
+PC	34
+0 0 17 4 D 4 0 0 0 0 14 0 0 0 0 348 0 0 0 0 348 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 4-7 = 3
+Address 20-23 = 420
+
+Case 4. (includes all 3 cases, initial activation, writeback + activation, no writeback + no activation)
+{ROW_ACCESS_DELAY = 10, COL_ACCESS_DELAY = 2}
+
+	addi $2, $0, 3
+	addi $3, $0, 4
+	sw $2, 1($2)
+	add $5, $6, $3
+	addi $4, $5, 95
+	addi $4, $2, 10
+	addi $2, $4, 10
+	addi $10, $0, 20
+	addi $15, $0, 420
+	sw $15, 2000($10)
+	lw $20, 2000($10)
+	add $15, $15, $15
+	add $20, $20, $20
+
+(part 1)
+
+Cycle number: 1
+Instruction: 	addi $2, $0, 3
+Register: R2=3
+Cycle number: 2
+Instruction: 	addi $3, $0, 4
+Register: R3=4
+Cycle number: 3
+Instruction: 	sw $2, 1($2)
+Remarks: DRAM request to address 4(row 0), currently no row is active.
+Cycle number: 4-13
+Instruction: DRAM Activate row 0
+Remarks: Load row 0 in row buffer
+Cycle number: 14-15
+Instruction: DRAM Column Request
+Memory: Address 4=3
+Remarks: Column access and update memory
+Cycle number: 16
+Instruction: 	add $5, $6, $3
+Register: R5=4
+Cycle number: 17
+Instruction: 	addi $4, $5, 95
+Register: R4=99
+Cycle number: 18
+Instruction: 	addi $4, $2, 10
+Register: R4=13
+Cycle number: 19
+Instruction: 	addi $2, $4, 10
+Register: R2=23
+Cycle number: 20
+Instruction: 	addi $10, $0, 20
+Register: R10=20
+Cycle number: 21
+Instruction: 	addi $15, $0, 420
+Register: R15=420
+Cycle number: 22
+Instruction: 	sw $15, 2000($10)
+Remarks: DRAM request to address 2020(row 1)
+Cycle number: 23-32
+Instruction: DRAM writeback row 0
+Cycle number: 33-42
+Instruction: DRAM Activate row 1
+Remarks: Load row 1 in row buffer
+Cycle number: 43-44
+Instruction: DRAM Column Request
+Memory: Address 2020=420
+Remarks: Column access and write value in R15
+Cycle number: 45
+Instruction: 	lw $20, 2000($10)
+Remarks: DRAM request to address 2020(row 1), currently active row is also 1
+Cycle number: 46-47
+Instruction: DRAM Column Request
+Register: R20=420
+Remarks: As the row is already in row buffer, activate and writeback time is avoided
+Cycle number: 48
+Instruction: 	add $15, $15, $15
+Register: R15=840
+Cycle number: 49
+Instruction: 	add $20, $20, $20
+Register: R20=840
+
+
+Row Buffer Activation Count = 2
+
+Clock Cycles: 49
+
+Register file:
+
+PC	34
+0 0 17 4 D 4 0 0 0 0 14 0 0 0 0 348 0 0 0 0 348 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 4-7 = 3
+Address 2020-2023 = 420
+
+(part 2)
+
+Cycle 1:	addi $2, $0, 3
+Register R2=3
+Cycle 2:	addi $3, $0, 4
+Register R3=4
+Cycle 3: 	sw $2, 1($2)
+DRAM request issued
+Cycle 4: 	add $5, $6, $3
+Updating Address 4=3 from DRAM and loaded register R5=4 from register file
+Cycle 5: 	addi $4, $5, 95
+Updating Address 4=3 from DRAM and loaded register R4=99 from register file
+Cycle 6-15:
+Updated Address 4=3
+Cycle 16: 	addi $4, $2, 10
+Loaded Register R4=13
+Cycle 17:	addi $2, $4, 10
+Register R2=23
+Cycle 18:	addi $10, $0, 20
+Register R10=20
+Cycle 19:	addi $15, $0, 420
+Register R15=420
+Cycle 20: 	sw $15, 2000($10)
+DRAM request issued
+Cycle 21-42:
+Updated Address 2020=420
+Cycle 43: 	lw $20, 2000($10)
+DRAM request issued
+Cycle 44: 	add $15, $15, $15
+Loading Register R20=420 from DRAM and loaded register R15=840 from register file
+Cycle 45-45:
+Loaded Register R20=420 from DRAM
+Cycle 46: 	add $20, $20, $20
+Register R20=840
+
+
+Row Buffer Activation Count = 2
+
+Clock Cycles: 46
+
+Register file:
+
+PC	34
+0 0 17 4 D 4 0 0 0 0 14 0 0 0 0 348 0 0 0 0 348 0 0 0 0 0 0 0 0 0 0 0
+
+Updated memory values:
+Address 4-7 = 3
+Address 2020-2023 = 420
+
+
+
+
+
+
+
+
+
+
+
